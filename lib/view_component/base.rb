@@ -87,14 +87,10 @@ module ViewComponent
       before_render
 
       if render?
-        if view_context.output_buffer
-          self.top_level_parent = view_context.top_level_parent || view_context
-          top_level_parent.output_buffer ||= ActionView::OutputBuffer.new
-          @output_buffer = top_level_parent.output_buffer
-          top_level_parent.children << self
-        else
-          @output_buffer = ActionView::OutputBuffer.new
-        end
+        self.top_level_parent = view_context.top_level_parent || view_context
+        top_level_parent.output_buffer ||= ActionView::OutputBuffer.new
+        @output_buffer = top_level_parent.output_buffer
+        top_level_parent.children << self
 
         __vc_fast_call_capture { render_template_for(@__vc_variant).to_s + _output_postamble }.tap do
           top_level_parent.children.delete(self) if top_level_parent
