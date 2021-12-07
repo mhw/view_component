@@ -93,7 +93,7 @@ module ViewComponent
         top_level_parent.children << self
 
         __vc_fast_call_capture { render_template_for(@__vc_variant).to_s + _output_postamble }.tap do
-          top_level_parent.children.delete(self) if top_level_parent
+          top_level_parent.children.delete(self)
         end
       else
         ""
