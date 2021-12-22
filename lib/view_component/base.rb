@@ -31,6 +31,11 @@ module ViewComponent
 
     attr_accessor :__vc_original_view_context
 
+    def output_buffer=(buf)
+      __vc_original_view_context.output_buffer = buf if __vc_original_view_context
+      super
+    end
+
     # EXPERIMENTAL: This API is experimental and may be removed at any time.
     # Hook for allowing components to do work as part of the compilation process.
     #
@@ -52,7 +57,11 @@ module ViewComponent
       self.class.compile(raise_errors: true)
 
       @view_context = view_context
-      self.__vc_original_view_context ||= view_context
+      self.__vc_original_view_context = if view_context.is_a?(::ViewComponent::Base)
+        view_context.__vc_original_view_context
+      else
+        view_context
+      end
 
       @lookup_context ||= view_context.lookup_context
 
@@ -87,13 +96,11 @@ module ViewComponent
       before_render
 
       if render?
-        self.top_level_parent = view_context.top_level_parent || view_context
-        top_level_parent.output_buffer ||= ActionView::OutputBuffer.new
-        @output_buffer = top_level_parent.output_buffer
-        top_level_parent.children << self
+        self.output_buffer = __vc_original_view_context.output_buffer || ActionView::OutputBuffer.new
+        __vc_original_view_context.child_contexts << self
 
         __vc_fast_call_capture { render_template_for(@__vc_variant).to_s + _output_postamble }.tap do
-          top_level_parent.children.delete(self)
+          __vc_original_view_context.child_contexts.delete(self)
         end
       else
         ""
