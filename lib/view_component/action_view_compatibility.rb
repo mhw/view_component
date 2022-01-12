@@ -6,15 +6,17 @@ module ViewComponent
       @_child_contexts ||= []
     end
 
-    def enlist_output_buffer(buf)
-      @output_buffer = buf
-    end
-
-    def output_buffer=(buf)
-      child_contexts.each do |child_context|
-        child_context.enlist_output_buffer(buf)
+    def with_output_buffer(buf = nil, &block)
+      children = child_contexts
+      if children.empty?
+        super
+      else
+        buf = ActionView::OutputBuffer.new
+        enlist_children = children.reverse.inject(block) { |proc, child_context|
+          Proc.new { child_context.enlist_output_buffer(buf, &proc) }
+        }
+        super(buf, &enlist_children)
       end
-      super
     end
   end
 end

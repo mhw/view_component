@@ -96,6 +96,7 @@ module ViewComponent
     initializer "view_component.include_render_compatibility" do |app|
       ActiveSupport.on_load(:action_view) do
         require "view_component/action_view_compatibility"
+        ActionView::Base.alias_method :enlist_output_buffer, :with_output_buffer
         ActionView::Base.prepend ViewComponent::ActionViewCompatibility
       end
     end

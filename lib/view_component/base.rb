@@ -31,11 +31,6 @@ module ViewComponent
 
     attr_accessor :__vc_original_view_context
 
-    def output_buffer=(buf)
-      __vc_original_view_context.output_buffer = buf if __vc_original_view_context
-      super
-    end
-
     # EXPERIMENTAL: This API is experimental and may be removed at any time.
     # Hook for allowing components to do work as part of the compilation process.
     #
@@ -96,10 +91,12 @@ module ViewComponent
       before_render
 
       if render?
-        self.output_buffer = __vc_original_view_context.output_buffer || ActionView::OutputBuffer.new
-        __vc_original_view_context.child_contexts << self
-
-        __vc_fast_call_capture { render_template_for(@__vc_variant).to_s + _output_postamble }.tap do
+        begin
+          __vc_original_view_context.child_contexts << self
+          __vc_fast_call_capture {
+            render_template_for(@__vc_variant).to_s + _output_postamble
+          }
+        ensure
           __vc_original_view_context.child_contexts.delete(self)
         end
       else
@@ -114,6 +111,10 @@ module ViewComponent
       with_output_buffer { value = yield }
 
       ERB::Util.html_escape(value.to_s)
+    end
+
+    def with_output_buffer(buf = nil, &block)
+      __vc_original_view_context.with_output_buffer(buf, &block)
     end
 
     # EXPERIMENTAL: Optional content to be returned after the rendered template.
@@ -207,7 +208,11 @@ module ViewComponent
       #
       # This allows ivars to remain persisted when using the same helper via
       # `helpers` across multiple components and partials.
-      @__vc_helpers ||= __vc_original_view_context || controller.view_context
+      unless defined?(@__vc_helpers)
+        @__vc_helpers = __vc_original_view_context || controller.view_context
+        # @__vc_helpers.extend(::Haml::Helpers) if defined?(::Haml::Helpers)
+      end
+      @__vc_helpers
     end
 
     # Exposes .virtual_path as an instance method
